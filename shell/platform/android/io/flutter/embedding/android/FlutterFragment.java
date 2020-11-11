@@ -4,6 +4,8 @@
 
 package io.flutter.embedding.android;
 
+import java.util.List;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +13,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -21,6 +24,13 @@ import io.flutter.Log;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.FlutterShellArgs;
 import io.flutter.embedding.engine.renderer.FlutterUiDisplayListener;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.AppSwitcherDescription;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.ClipboardContentFormat;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.HapticFeedbackType;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.SoundType;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.SystemChromeStyle;
+import io.flutter.embedding.engine.systemchannels.PlatformChannel.SystemUiOverlay;
 import io.flutter.plugin.platform.PlatformPlugin;
 
 /**
@@ -586,7 +596,94 @@ public class FlutterFragment extends Fragment implements FlutterActivityAndFragm
   @Override
   public View onCreateView(
       LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-    return delegate.onCreateView(inflater, container, savedInstanceState);
+	return delegate.onCreateView(inflater, container, savedInstanceState);
+  }
+  
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+	super.onCreate(savedInstanceState);	
+	setFragmentPlatformMessageHandler();
+  }
+  
+  private void setFragmentPlatformMessageHandler() {
+	PlatformChannel.PlatformMessageHandler platformMessageHandler =
+		getFlutterEngine().getPlatformChannel().getPlatformMessageHandler();
+	
+	if (platformMessageHandler == null || getActivity() == null) {
+	  return;	
+	}
+	
+	OnBackPressedCallback onBackPressedCallback =
+		new OnBackPressedCallback(true) {			
+			@Override
+			public void handleOnBackPressed() {
+			  onBackPressed();				
+			}
+		};
+	
+	PlatformChannel.PlatformMessageHandler fragmentPlatformMessageHandler =
+		new PlatformChannel.PlatformMessageHandler() {
+			
+			@Override
+			public void vibrateHapticFeedback(HapticFeedbackType feedbackType) {
+			  platformMessageHandler.vibrateHapticFeedback(feedbackType);
+			}
+			
+			@Override
+			public void showSystemOverlays(List<SystemUiOverlay> overlays) {
+			  platformMessageHandler.showSystemOverlays(overlays);
+			}
+			
+			@Override
+			public void setSystemUiOverlayStyle(SystemChromeStyle systemUiOverlayStyle) {
+			  platformMessageHandler.setSystemUiOverlayStyle(systemUiOverlayStyle);	
+			}
+			
+			@Override
+			public void setPreferredOrientations(int androidOrientation) {
+			  platformMessageHandler.setPreferredOrientations(androidOrientation);	
+			}
+			
+			@Override
+			public void setClipboardData(String text) {
+			  platformMessageHandler.setClipboardData(text);
+			}
+			
+			@Override
+			public void setApplicationSwitcherDescription(AppSwitcherDescription description) {
+			  platformMessageHandler.setApplicationSwitcherDescription(description);
+			}
+			
+			@Override
+			public void restoreSystemUiOverlays() {
+			  platformMessageHandler.restoreSystemUiOverlays();	
+			}
+			
+			@Override
+			public void popSystemNavigator() {
+			  onBackPressedCallback.remove();
+			  getActivity().onBackPressed();
+			}
+			
+			@Override
+			public void playSystemSound(SoundType soundType) {
+			  platformMessageHandler.playSystemSound(soundType);	
+			}
+			
+			@Override
+			public CharSequence getClipboardData(ClipboardContentFormat format) {
+			  return platformMessageHandler.getClipboardData(format);
+			}
+			
+			@Override
+			public boolean clipboardHasStrings() {
+			  return platformMessageHandler.clipboardHasStrings();
+			}
+		};		
+		
+    getActivity().getOnBackPressedDispatcher().addCallback(onBackPressedCallback);	
+    
+    getFlutterEngine().getPlatformChannel().setPlatformMessageHandler(fragmentPlatformMessageHandler);
   }
 
   @Override

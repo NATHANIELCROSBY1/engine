@@ -12,8 +12,15 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+
+import android.view.View;
+import android.widget.Button;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
 
 @Config(manifest = Config.NONE)
 @RunWith(RobolectricTestRunner.class)
@@ -104,5 +111,31 @@ public class FlutterFragmentTest {
     // 1 time same as before.
     verify(mockDelegate, times(1)).onDestroyView();
     verify(mockDelegate, times(1)).onDetach();
+  }
+
+  @Test
+  public void onBackPressedTest() {
+	FragmentActivity fragmentActivity = Robolectric.buildActivity(FragmentActivity.class).create().get();  
+	Button button = new Button(RuntimeEnvironment.application);
+	fragmentActivity.setContentView(button);
+	FragmentManager fragmentManager = fragmentActivity.getSupportFragmentManager();
+    
+	FlutterFragment fragment = FlutterFragment.createDefault();
+    fragment.setDelegate(new FlutterActivityAndFragmentDelegate(fragment)); 
+
+    button.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+          fragmentManager.beginTransaction()
+          				 .add(fragment,"FRAGMENT_1")
+          				 .commit();
+        }
+    });
+    
+    button.performClick();
+    assertEquals(1, fragmentManager.getFragments().size());
+    
+    fragmentActivity.onBackPressed();    
+    assertEquals(0, fragmentManager.getFragments().size());
   }
 }

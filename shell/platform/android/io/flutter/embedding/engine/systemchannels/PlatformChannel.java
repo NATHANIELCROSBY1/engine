@@ -193,6 +193,10 @@ public class PlatformChannel {
   public void setPlatformMessageHandler(@Nullable PlatformMessageHandler platformMessageHandler) {
     this.platformMessageHandler = platformMessageHandler;
   }
+  
+  public PlatformMessageHandler getPlatformMessageHandler() {
+	return platformMessageHandler;
+  }
 
   // TODO(mattcarroll): add support for IntDef annotations, then add @ScreenOrientation
 
